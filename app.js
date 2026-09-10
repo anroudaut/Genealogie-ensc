@@ -327,6 +327,7 @@
     monde_g = svg.firstChild;
     selection = null;
     fiche.hidden = true;
+    vueArbre.classList.remove("fiche-ouverte");
     svg.classList.remove("selection");
 
     if (memoire) {
@@ -368,7 +369,9 @@
   function vueInitiale() {
     const m = arbre.monde, w = scene.clientWidth, h = scene.clientHeight;
     const complet = Math.min(w / (m.x1 - m.x0), h / (m.y1 - m.y0));
-    vue.k = Math.min(Math.max(complet, 0.5), 1);
+    // sur un écran étroit, les noms deviennent illisibles en dessous de 0,85
+    const plancher = w < 700 ? .85 : .5;
+    vue.k = Math.min(Math.max(complet, plancher), 1);
     if (vue.k <= complet + 1e-9) { ajuster(); return; }
     const rac = arbre.racines.map(id => arbre.noeuds.get(id));
     vue.x = w / 2 - (rac.reduce((s, n) => s + n.px, 0) / rac.length) * vue.k;
@@ -396,30 +399,102 @@
     appliquer();
   }
 
-  // ---------- Déplacement, zoom ----------
-  let attrape = null;
+  // ---------- Déplacement, zoom, pincement ----------
+  const pointeurs = new Map();
+  let attrape = null, pince = null, dernierTap = 0, dernierTapXY = null;
+
+  const milieu = () => {
+    const p = [...pointeurs.values()];
+    return { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 };
+  };
+  const ecart = () => {
+    const p = [...pointeurs.values()];
+    return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+  };
+
+  function demarrerPince() {
+    const r = scene.getBoundingClientRect();
+    const m = milieu();
+    pince = {
+      d0: ecart() || 1,
+      m0: { x: m.x - r.left, y: m.y - r.top },
+      k0: vue.k, x0: vue.x, y0: vue.y,
+      rect: r,
+    };
+    attrape = null;
+  }
+
+  function demarrerGlisse(p) {
+    attrape = { x: p.x, y: p.y, vx: vue.x, vy: vue.y, bouge: false };
+  }
+
   scene.addEventListener("pointerdown", e => {
     if (!pret) return;
-    attrape = { x: e.clientX, y: e.clientY, vx: vue.x, vy: vue.y, bouge: false };
-    vientDeGlisser = false;
+    pointeurs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     scene.setPointerCapture(e.pointerId);
-    scene.classList.add("attrape");
+    vientDeGlisser = false;
+    if (pointeurs.size === 2) demarrerPince();
+    else if (pointeurs.size === 1) {
+      demarrerGlisse({ x: e.clientX, y: e.clientY });
+      scene.classList.add("attrape");
+    }
   });
+
   scene.addEventListener("pointermove", e => {
+    if (!pointeurs.has(e.pointerId)) return;
+    pointeurs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pince && pointeurs.size >= 2) {
+      const m = milieu();
+      const m1 = { x: m.x - pince.rect.left, y: m.y - pince.rect.top };
+      const k = Math.min(Math.max(pince.k0 * (ecart() / pince.d0), ZOOM_MIN), ZOOM_MAX);
+      // le point du monde saisi entre les deux doigts reste sous les doigts
+      vue.x = m1.x - (pince.m0.x - pince.x0) * (k / pince.k0);
+      vue.y = m1.y - (pince.m0.y - pince.y0) * (k / pince.k0);
+      vue.k = k;
+      vientDeGlisser = true;
+      appliquer();
+      return;
+    }
+
     if (!attrape) return;
     const dx = e.clientX - attrape.x, dy = e.clientY - attrape.y;
-    if (!attrape.bouge && Math.hypot(dx, dy) < 4) return;
+    if (!attrape.bouge && Math.hypot(dx, dy) < 5) return;
     attrape.bouge = true;
-    vue.x = attrape.vx + dx; vue.y = attrape.vy + dy;
+    vientDeGlisser = true;
+    vue.x = attrape.vx + dx;
+    vue.y = attrape.vy + dy;
     appliquer();
   });
-  const lacher = () => {
-    vientDeGlisser = !!(attrape && attrape.bouge);
-    attrape = null;
-    scene.classList.remove("attrape");
-  };
-  scene.addEventListener("pointerup", lacher);
-  scene.addEventListener("pointercancel", lacher);
+
+  function relacher(e) {
+    pointeurs.delete(e.pointerId);
+    if (pointeurs.size < 2) pince = null;
+    if (pointeurs.size === 1) demarrerGlisse([...pointeurs.values()][0]);
+    if (pointeurs.size === 0) {
+      attrape = null;
+      scene.classList.remove("attrape");
+    }
+  }
+  scene.addEventListener("pointerup", relacher);
+  scene.addEventListener("pointercancel", relacher);
+
+  // Double tap ou double clic : on approche, puis on revient à la vue d'ensemble.
+  scene.addEventListener("pointerup", e => {
+    if (!pret || vientDeGlisser || pointeurs.size) return;
+    const maintenant = Date.now();
+    const proche = dernierTapXY && Math.hypot(e.clientX - dernierTapXY.x, e.clientY - dernierTapXY.y) < 30;
+    if (maintenant - dernierTap < 320 && proche) {
+      const r = scene.getBoundingClientRect();
+      zoomer(vue.k < 1.1 ? 2 : 1 / (vue.k / 0.5), e.clientX - r.left, e.clientY - r.top);
+      dernierTap = 0;
+      dernierTapXY = null;
+      return;
+    }
+    dernierTap = maintenant;
+    dernierTapXY = { x: e.clientX, y: e.clientY };
+  });
+
   scene.addEventListener("wheel", e => {
     if (!pret) return;
     e.preventDefault();
@@ -458,6 +533,7 @@
     svg.classList.remove("selection");
     svg.querySelectorAll(".actif, .ancetre, .descendant").forEach(el => el.classList.remove("actif", "ancetre", "descendant"));
     fiche.hidden = true;
+    vueArbre.classList.remove("fiche-ouverte");
   }
 
   function selectionner(id, recentrer = false) {
@@ -519,6 +595,7 @@
         `<div><b>${gen}</b><span>génération${gen > 1 ? "s" : ""} en dessous</span></div>` +
         `<div><b>${haut.size}</b><span>ancêtres</span></div></div>`;
     fiche.hidden = false;
+    vueArbre.classList.add("fiche-ouverte");
   }
 
   fiche.addEventListener("click", e => {
@@ -978,6 +1055,10 @@
   }
 
   // ---------- Démarrage ----------
+  if (window.matchMedia && window.matchMedia("(hover: none)").matches) {
+    astuce.textContent = "Pincez pour zoomer, glissez pour vous déplacer, touchez quelqu'un pour suivre sa lignée.";
+  }
+
   const depart = decodeURIComponent(location.hash.slice(1)).toUpperCase();
   ongletActif = FAMILLES.includes(depart) || depart === "INFO" || depart === "CLASSEMENT" ? depart : FAMILLES[0];
   document.body.dataset.famille = ongletActif;

@@ -66,6 +66,19 @@ Tant que `gidPoints` vaut `null`, l'onglet Classement affiche ce mode d'emploi.
 Les ex æquo sont gérés : deux familles à égalité partagent la même place, et la
 suivante est décalée d'autant.
 
+## Navigation dans un arbre
+
+| Geste | Souris | Tactile |
+|---|---|---|
+| Se déplacer | glisser | glisser un doigt |
+| Zoomer | molette | pincer à deux doigts |
+| Zoom rapide | double clic | double tap |
+| Voir une fiche | clic sur une carte | toucher une carte |
+| Vue d'ensemble | bouton « Tout voir » | bouton « Tout voir » |
+
+Sur téléphone, la fiche s'ouvre en tiroir depuis le bas, les onglets passent
+dans un menu burger, et l'arbre démarre à un zoom où les noms restent lisibles.
+
 ## Tester en local
 
 **Ne double-cliquez pas sur `index.html`.** Ouverte depuis le disque
