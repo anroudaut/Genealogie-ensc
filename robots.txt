@@ -1,0 +1,4 @@
+# Le site reste accessible à qui a le lien, mais ne remonte pas
+# dans les moteurs de recherche : ce sont des noms d'étudiants.
+User-agent: *
+Disallow: /

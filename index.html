@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Généalogie du parrainage</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-famille="VERT">
+
+<header class="barre">
+  <div class="marque">
+    <span class="marque-pastille" aria-hidden="true"></span>
+    <span class="marque-nom">Généalogie du parrainage</span>
+  </div>
+
+  <button type="button" class="burger" id="burger" aria-expanded="false" aria-controls="onglets" aria-label="Ouvrir le menu">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
+    <span id="burger-titre">Vert</span>
+  </button>
+
+  <nav class="onglets" id="onglets" aria-label="Familles"></nav>
+
+  <div class="recherche" id="bloc-recherche">
+    <input type="search" id="recherche" placeholder="Chercher quelqu'un…" autocomplete="off"
+           aria-label="Chercher une personne" aria-expanded="false" role="combobox" aria-controls="resultats">
+    <ul class="resultats" id="resultats" role="listbox" hidden></ul>
+  </div>
+</header>
+
+<main>
+  <!-- ---------- Vue arbre ---------- -->
+  <section id="vue-arbre" class="vue vue-arbre">
+    <div class="gouttiere" id="gouttiere" aria-hidden="true"></div>
+
+    <div class="scene" id="scene">
+      <svg id="arbre" role="img" aria-label="Arbre généalogique de la famille"></svg>
+      <div class="voile" id="voile-arbre" aria-live="polite"></div>
+    </div>
+
+    <div class="commandes" id="commandes">
+      <button type="button" id="zoom-plus" title="Zoomer">+</button>
+      <button type="button" id="zoom-moins" title="Dézoomer">−</button>
+      <button type="button" id="ajuster" title="Voir tout l'arbre">Tout voir</button>
+    </div>
+
+    <p class="astuce" id="astuce">Glissez pour vous déplacer, molette pour zoomer, cliquez sur une personne pour suivre sa lignée.</p>
+
+    <aside class="fiche" id="fiche" hidden aria-live="polite"></aside>
+  </section>
+
+  <!-- ---------- Vue classement ---------- -->
+  <section id="vue-classement" class="vue vue-texte" hidden>
+    <div class="contenu" id="contenu-classement"></div>
+  </section>
+
+  <!-- ---------- Vue informations ---------- -->
+  <section id="vue-info" class="vue vue-texte" hidden>
+    <div class="contenu" id="contenu-info"></div>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
